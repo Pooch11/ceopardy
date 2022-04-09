@@ -428,7 +428,7 @@
         });
     }
 
-    {# FIXME: not CSRF protected but what are the odds of clicking on a link during a game ;) #}
+   // {# FIXME: not CSRF protected but what are the odds of clicking on a link during a game ;) #}
     function SubmitResults(event) {
         var url = "{{ url_for('answer') }}";
         $.ajax({
