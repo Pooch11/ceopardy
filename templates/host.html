@@ -136,6 +136,9 @@
                             <div id="results-submit" class="form-icon form-click" title="Submit score">
                                 <i class="fa fa-check-square-o fa-2x"></i>
                             </div>
+                            <div id="double-jeo" class="form-icon form-click" title="Wage Score - Dbl Jeo">
+                                <i class="fa fa-check-square fa-2x"></i>
+                            </div>
                             <div id="finish-game" class="form-icon form-click" title="Finish the game">
                                 <i class="fa fa-sign-out fa-2x"></i>
                             </div>
@@ -476,6 +479,56 @@
         });
     }
 
+    function DoubleJeo(event) {
+        var url = "{{ url_for('answer_wager') }}";
+        var _wager = window.prompt("Wager?:", 100); 
+        var _data = 
+        $.ajax({
+            type: "POST",
+            url: url,
+            data: { form: $('#form-question').serialize(), wager: _wager},
+            dataType: 'json',
+            success: function (data) {
+                $(".form-error").empty();
+                if (data.result == "success") {
+                    var id = $('#question-id').val();
+                    $('.box-selected').addClass("box-answered");
+                    DeselectQuestion(id);
+                    if (data.ctl_team == null) {
+                        DeselectAllTeams();
+                    } else {
+                        SelectTeam(data.ctl_team);
+                    }
+                    // Populate the little boxes with question scores
+                    for (var key in data.answers) {
+                        if (!data.answers.hasOwnProperty(key)) {
+                            continue;
+                        }
+                        var team = key;
+                        var score = data.answers[key];
+                        var selector = `#${id}${team}`;
+                        $(selector).addClass(team + '-color');
+                        $(selector + '> span').text(score);
+                    }
+                    // Populate the bigger boxes with team scores
+                    for (var key in data.teams) {
+                        if (!data.answers.hasOwnProperty(key)) {
+                            continue;
+                        }
+                        var team = key;
+                        var score = data.teams[key];
+                        var selector = `#${team}-score > p`;
+                        $(selector).text('$' + score)
+                    }
+                }
+                else {
+                   console.log("You fucked it up! ;)");
+                }
+            }
+        });
+    }
+
+
     function DisplayMessage(event) {
         var show = $(this).find('.message-show');
         var hide = $(this).find('.message-hide');
@@ -625,6 +678,12 @@
             SubmitResults(e);
         });
         
+        $('#double-jeo').on("click", DoubleJeo);
+        $('#form-question').on("submit", function(e){
+            e.preventDefault();
+            DoubleJeo(e);
+        });
+
         $('.message-display').on("click", DisplayMessage);
         $('.message-edit').on("click", EditMessage);
         $('#message-hide').on("click", function(e) {
@@ -649,7 +708,7 @@
         $(document).keypress(function(e) {
             // Matches numerical keyboard keys 1, 2 and 3
             // Buzzers emulate a usb keyboard, this will be changed eventually
-            if ([49, 50, 51].includes(e.keyCode)) {
+            if ([49, 50, 51, 52].includes(e.keyCode)) {
                 HandleBuzzer(e);
             }
         });

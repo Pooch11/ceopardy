@@ -128,6 +128,16 @@ class Answer(db.Model):
         self.team = team
         self.question = question
 
+    def __init__(self, response, team, question, wager=0):
+        """Meant to be used on Daily Double questions where score is a wager from player """
+        if wager == 0:
+            self.score_attributed = question.score_original
+        else:
+            self.score_attributed = wager
+        self.response = response
+        self.team = team
+        self.question = question
+
     def __repr__(self):
         return '<Answer by team id {} to question id {} is {}. Points {}>'\
             .format(self.team_id, self.question_id, self.response.name,

@@ -187,6 +187,40 @@ def answer():
 
     return jsonify(result="success", answers=question_status[data["id"]],
                    teams=teams, ctl_team=ctl_team)
+
+@app.route('/answer_wager', methods=["POST"])
+def answer_wager():
+    # FIXME this form isn't CSRF protected
+    app.logger.debug("Answer form has been submitted with: {0}", request.form)
+    data = dict(_data.split('=') for _data in request.form.get('form').split('&') if _data)
+    wager = request.form.get('wager')
+    controller = get_controller()
+
+    app.logger.debug('received data: {}'.format(data["id"]))
+    try:
+        col, row = utils.parse_question_id(data["id"])
+    except utils.InvalidQuestionId:
+        return jsonify(result="failure", error="Invalid category/question format!")
+
+    # Send everything but qid as a dict
+    answers = dict(_data.split('=') for _data in request.form.get('form').split('&') if _data)
+    answers.pop('id')
+    if not controller.answer_wager(col, row, answers, wager):
+        return jsonify(result="failure", error="Answer submission failed!")
+
+    # TODO this is grossly inefficient
+    question_status = controller.get_questions_status_for_host()
+    teams = controller.get_teams_score_by_tid()
+    emit("team", {"action": "score", "args": teams}, namespace='/viewer', broadcast=True)
+
+    # someone answered correctly? identify team in control
+    ctl_team = controller.get_good_answer_team(col, row)
+    # highlight team in control and persist that state
+    controller.set_state("team", ctl_team)
+    emit("team", {'action': 'select', 'args': ctl_team}, namespace='/viewer', broadcast=True)
+
+    return jsonify(result="success", answers=question_status[data.get("id")],
+                   teams=teams, ctl_team=ctl_team)
     
 
 @socketio.on('question', namespace='/host')

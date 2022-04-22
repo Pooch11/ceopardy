@@ -357,6 +357,35 @@ class Controller():
         db.session.commit()
         return True
 
+    @staticmethod
+    def answer_wager(column, row, answers, wager):
+        app.logger.info("Answers submitted for question ({}, {}): {}"
+                        .format(column, row, answers))
+        # Answers looks like: ('team1', '-1'), ('team2', '1'), ('team3', '0')]
+
+        condition = and_(Question.row == row, Question.col == column)
+        _q = Question.query.filter(condition).one()
+        
+        # Is there already an answer? If so update answers
+        prev_answers = Answer.query.filter(Answer.question_id == _q.id).all()
+        if prev_answers:
+            for _answer in prev_answers:
+                _answer.response = Response(int(answers[_answer.team.tid]))
+                score_attributed = int(wager)
+                db.session.add(_answer)
+
+        # Otherwise create new ones
+        else:
+            for tid, points in answers.items():
+                team = Team.query.filter(Team.tid == tid).one()
+                question = Question.query.get(_q.id)
+                question.score_original = int(wager)
+                response = Response(int(points))
+                db.session.add(Answer(response, team, question, int(wager)))
+
+        db.session.commit()
+        return True
+
 
     @staticmethod
     def _get_questions_status():
